@@ -7,6 +7,7 @@
 window.MapManager = {
   _map: null,
   _markers: new Map(),
+  LAYER_PREF_KEY: 'golfplaetze_saved_layer',
 
   init: function (containerId) {
     this._map = L.map(containerId, {
@@ -15,24 +16,52 @@ window.MapManager = {
       worldCopyJump: true
     });
 
-    // Base layers: Karte (OpenStreetMap) und Satellit (ESRI World Imagery)
+    // 1. Standard Straßenkarte (OpenStreetMap)
     var karteLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende'
     });
 
-    var satellitLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    // 2. Satellitenbild (ESRI World Imagery)
+    var satImagery = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
       maxZoom: 19,
       attribution: '© <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics'
     });
 
-    karteLayer.addTo(this._map);
+    // 3. Beschriftungen, Orte & Ländergrenzen (ESRI Boundaries & Places)
+    var satLabels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+      maxZoom: 19,
+      attribution: ''
+    });
 
-    L.control.layers(
-      { 'Karte': karteLayer, 'Satellit': satellitLayer },
-      null,
-      { position: 'topright', collapsed: false }
-    ).addTo(this._map);
+    // Kombinierter Satellitenmodus mit Beschriftungen & Grenzen (Hybrid)
+    var satellitHybridLayer = L.layerGroup([satImagery, satLabels]);
+
+    // Zuletzt benutzte Ansicht ermitteln (Standard: 'Karte')
+    var savedLayerName = localStorage.getItem(this.LAYER_PREF_KEY) || 'Karte';
+
+    if (savedLayerName === 'Satellit') {
+      satellitHybridLayer.addTo(this._map);
+    } else {
+      karteLayer.addTo(this._map);
+    }
+
+    // Ebenenauswahl-Widget oben rechts hinzufügen
+    var baseMaps = {
+      'Karte': karteLayer,
+      'Satellit': satellitHybridLayer
+    };
+
+    L.control.layers(baseMaps, null, {
+      position: 'topright',
+      collapsed: false
+    }).addTo(this._map);
+
+    // Auswahl merken, sobald der Nutzer umschaltet
+    var self = this;
+    this._map.on('baselayerchange', function (e) {
+      localStorage.setItem(self.LAYER_PREF_KEY, e.name);
+    });
   },
 
   _makeIcon: function () {
@@ -49,23 +78,22 @@ window.MapManager = {
   addMarker: function (course, onEditClick) {
     var marker = L.marker([course.lat, course.lon], { icon: this._makeIcon() });
 
-    var tooltipText = course.name;
+    var tooltipText = '<strong>' + course.name.replace(/</g, '&lt;') + '</strong>';
     if (course.years && course.years.length > 0) {
-      tooltipText += ' | ' + course.years.join(', ');
+      tooltipText += '<br>Jahre: ' + course.years.join(', ');
     }
     if (course.rating) {
       var stars = '';
       for (var i = 1; i <= 5; i++) { stars += (i <= course.rating ? '★' : '☆'); }
-      tooltipText += ' | ' + stars;
+      tooltipText += '<br>Bewertung: ' + stars;
     }
     if (course.comment) {
       tooltipText += '<br><em>' + course.comment.replace(/</g, '&lt;') + '</em>';
     }
 
-    marker.bindTooltip(tooltipText, {
-      permanent: false,
-      sticky: false
-    });
+    // Sowohl Popup (für Klick/Touch) als auch Tooltip (für Hover am Desktop) binden
+    marker.bindPopup(tooltipText);
+    marker.bindTooltip(tooltipText, { permanent: false, sticky: false });
 
     marker.on('click', function () {
       if (typeof onEditClick === 'function') {

@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Gespielte Golfplätze</title>
   
   <!-- Mobile & PWA Einstellungen -->
@@ -159,12 +159,13 @@
   <script src="js/backup.js"></script>
   <script src="js/app.js"></script>
 
-  <!-- Steuerung des mobilen Menüs -->
+  <!-- Steuerung des mobilen Verhaltens -->
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       var toggleBtn = document.getElementById('mobile-sidebar-toggle');
       var sidebar = document.getElementById('sidebar');
 
+      // 1. Menü-Button Steuerung
       if (toggleBtn && sidebar) {
         toggleBtn.addEventListener('click', function () {
           var isOpen = sidebar.classList.toggle('mobile-open');
@@ -173,9 +174,34 @@
           if (window.MapManager && window.MapManager._map) {
             setTimeout(function () {
               window.MapManager._map.invalidateSize();
-            }, 300);
+            }, 250);
           }
         });
+      }
+
+      // 2. Automatisches Aufspringen bei Klick auf einen Marker unterbinden
+      if (window.App) {
+        var originalHighlight = App._highlightListItem;
+        App._highlightListItem = function (courseId) {
+          // Auf Mobilgeräten scrollt die Liste nur mit, wenn das Menü bereits offen ist
+          if (window.innerWidth <= 768 && (!sidebar || !sidebar.classList.contains('mobile-open'))) {
+            var list = document.getElementById('course-list');
+            if (list) {
+              var items = list.querySelectorAll('li');
+              items.forEach(function (li) {
+                if (li.getAttribute('data-id') === courseId) {
+                  li.classList.add('highlighted');
+                } else {
+                  li.classList.remove('highlighted');
+                }
+              });
+            }
+            return;
+          }
+          if (typeof originalHighlight === 'function') {
+            originalHighlight.call(App, courseId);
+          }
+        };
       }
     });
   </script>

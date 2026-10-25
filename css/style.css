@@ -699,3 +699,14 @@ footer a {
     display: none;
   }
 }
+
+/* ============================================================
+   Altes Hinweisfenster (Tooltip) komplett unterdrücken
+   ============================================================ */
+.leaflet-tooltip,
+.leaflet-tooltip-pane {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

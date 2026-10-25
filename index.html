@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gespielte Golfplätze</title>
+  
+  <!-- Mobile & PWA Einstellungen -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#2d6a4f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -37,7 +44,7 @@
           </div>
         </div>
 
-        <!-- Modus 2: Auf Karte setzen (Variante A) -->
+        <!-- Modus 2: Auf Karte setzen -->
         <div id="mode-map" style="display:none;">
           <p class="hint">Klicken Sie auf die Karte, um den Platz zu setzen. Der Pin lässt sich zum Feinjustieren ziehen.</p>
           <button type="button" id="place-on-map-btn" class="btn-secondary">Punkt auf Karte setzen</button>
@@ -111,6 +118,9 @@
     </aside>
   </main>
 
+  <!-- Mobiler Toggle-Button für die Seitenleiste -->
+  <button id="mobile-sidebar-toggle" aria-label="Menü öffnen" type="button">☰ Menü</button>
+
   <!-- Bearbeitungs-Modal -->
   <div id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
     <div id="edit-modal-content">
@@ -148,6 +158,27 @@
   <script src="js/geocode.js"></script>
   <script src="js/backup.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- Steuerung des mobilen Menüs -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var toggleBtn = document.getElementById('mobile-sidebar-toggle');
+      var sidebar = document.getElementById('sidebar');
+
+      if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', function () {
+          var isOpen = sidebar.classList.toggle('mobile-open');
+          toggleBtn.textContent = isOpen ? '✕ Karte' : '☰ Menü';
+
+          if (window.MapManager && window.MapManager._map) {
+            setTimeout(function () {
+              window.MapManager._map.invalidateSize();
+            }, 300);
+          }
+        });
+      }
+    });
+  </script>
 
 </body>
 </html>

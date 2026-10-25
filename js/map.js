@@ -78,22 +78,35 @@ window.MapManager = {
   addMarker: function (course, onEditClick) {
     var marker = L.marker([course.lat, course.lon], { icon: this._makeIcon() });
 
-    var tooltipText = '<strong>' + course.name.replace(/</g, '&lt;') + '</strong>';
+    // Modernes Popup mit strukturierter Formatierung
+    var popupHtml = '<div style="font-family:system-ui,sans-serif; line-height:1.4; min-width:160px;">' +
+      '<strong style="font-size:1rem; color:#2d6a4f; display:block; margin-bottom:4px;">' +
+      course.name.replace(/</g, '&lt;') +
+      '</strong>';
+
     if (course.years && course.years.length > 0) {
-      tooltipText += '<br>Jahre: ' + course.years.join(', ');
+      popupHtml += '<span style="font-size:0.8rem; color:#555; display:block;">📅 ' + course.years.join(', ') + '</span>';
     }
+
     if (course.rating) {
       var stars = '';
       for (var i = 1; i <= 5; i++) { stars += (i <= course.rating ? '★' : '☆'); }
-      tooltipText += '<br>Bewertung: ' + stars;
-    }
-    if (course.comment) {
-      tooltipText += '<br><em>' + course.comment.replace(/</g, '&lt;') + '</em>';
+      popupHtml += '<span style="color:#f5a623; font-size:0.95rem; display:block; margin:2px 0;">' + stars + '</span>';
     }
 
-    // Sowohl Popup (für Klick/Touch) als auch Tooltip (für Hover am Desktop) binden
-    marker.bindPopup(tooltipText);
-    marker.bindTooltip(tooltipText, { permanent: false, sticky: false });
+    if (course.comment) {
+      popupHtml += '<p style="margin:6px 0 0; font-size:0.82rem; font-style:italic; color:#333; border-top:1px solid #eee; padding-top:4px;">' +
+        course.comment.replace(/</g, '&lt;') +
+        '</p>';
+    }
+    popupHtml += '</div>';
+
+    // Ausschliesslich das moderne Popup binden (kein bindTooltip mehr)
+    marker.bindPopup(popupHtml, {
+      maxWidth: 280,
+      autoPan: true,
+      autoPanPadding: [20, 20]
+    });
 
     marker.on('click', function () {
       if (typeof onEditClick === 'function') {
